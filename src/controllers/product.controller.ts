@@ -19,31 +19,21 @@ export class ProductController {
     @Headers() headers: any,
     @Req() req: Request
   ): Promise<ShopifyProduct[]> {
-    console.log('?? Shopify Proxy Request Received');
-    console.log('?? Query Params:', query);
-    console.log('?? Headers:', headers);
-    console.log('?? Full Request Info:', {
+    console.log('Shopify Proxy Request Received');
+    console.log('Query Params:', query);
+    console.log('Headers:', headers);
+    console.log('Full Request Info:', {
       method: req.method,
       path: req.path,
       originalUrl: req.originalUrl,
       ip: req.ip,
     });
 
-    const email = query.email;
-    if (!email) {
-      throw new NotFoundException('Missing email in query');
-    }
-
-    const shop = await this.shopService.findByEmail(email);
-    if (!shop) {
-      throw new NotFoundException('Shop not found for this email');
-    }
-
-    const session = await this.sessionService.findByShop(shop.shopifyDomain);
+    const session = await this.sessionService.findByShop(query.shop);
     if (!session) {
       throw new NotFoundException('Session not found for this shopify domain');
     }
 
-    return this.shopifyService.getProducts(shop.shopifyDomain, session.accessToken);
+    return this.shopifyService.getProducts(query.shop, session.accessToken);
   }
 }
