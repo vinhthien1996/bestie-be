@@ -1,8 +1,9 @@
-import { Controller, Get, NotFoundException, Query } from '@nestjs/common';
+import { Controller, Get, Headers, NotFoundException, Query, Req } from '@nestjs/common';
 import { ShopifyService } from '../services/shopify.service';
 import { ShopifyProduct } from '../models/shopify-product.model';
 import { ShopService } from '../services/shop.service';
 import { SessionService } from '../services/session.service';
+import { Request } from 'express';
 
 @Controller('products')
 export class ProductController {
@@ -13,17 +14,36 @@ export class ProductController {
   ) {}
 
   @Get()
-  async getProducts(@Query('email') email: string): Promise<ShopifyProduct[]> {
-    console.log('email', email);
-    
+  async getProducts(
+    @Query() query: any,
+    @Headers() headers: any,
+    @Req() req: Request
+  ): Promise<ShopifyProduct[]> {
+    console.log('?? Shopify Proxy Request Received');
+    console.log('?? Query Params:', query);
+    console.log('?? Headers:', headers);
+    console.log('?? Full Request Info:', {
+      method: req.method,
+      path: req.path,
+      originalUrl: req.originalUrl,
+      ip: req.ip,
+    });
+
+    const email = query.email;
+    if (!email) {
+      throw new NotFoundException('Missing email in query');
+    }
+
     const shop = await this.shopService.findByEmail(email);
     if (!shop) {
       throw new NotFoundException('Shop not found for this email');
     }
+
     const session = await this.sessionService.findByShop(shop.shopifyDomain);
     if (!session) {
       throw new NotFoundException('Session not found for this shopify domain');
     }
+
     return this.shopifyService.getProducts(shop.shopifyDomain, session.accessToken);
   }
-} 
+}
